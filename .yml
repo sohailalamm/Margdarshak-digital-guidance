@@ -1,0 +1,8 @@
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run my script
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python my_script.py
