@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Margdarshak — Digital Guidance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #ffffff;
+      --ink2: rgba(255, 255, 255, 0.9);
+      --muted: rgba(255, 255, 255, 0.75);
+      --cream: #fdfaf5;
+      --saffron: #e8631a;
+      --saffron-dark: #c75a1a;
+      --green: #1a6b45;
+      --green-soft: #e8f5ee;
+      --card: #ffffff;
+      --border: rgba(26, 35, 50, 0.1);
+      --shadow: 0 12px 40px rgba(26, 35, 50, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Source Sans 3", system-ui, sans-serif;
+      color: #fff;
+      min-height: 100vh;
+      background:
+        linear-gradient(165deg, rgba(253, 250, 245, 0.96) 0%, rgba(245, 238, 228, 0.94) 45%, rgba(232, 245, 236, 0.9) 100%),
+        url("D:\mini_project\photo-1497633762265-9d179a990aa6.avif") center / cover fixed;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #1a2332 0%, #0f1419 100%);
+      color: #fff;
+      padding: 1.75rem 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .sidebar-logo {
+      padding: 0 1.5rem 1.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-logo h1 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.35rem;
+      color: #fff;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .sidebar-logo p {
+      font-size: 0.68rem;
+      color: #fff;
+      margin-top: 0.35rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .nav-items { padding: 1.25rem 0; flex: 1; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 1.5rem;
+      font-size: 0.9rem;
+      color: #fff;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .nav-item:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+    .nav-item.active {
+      color: #fff;
+      border-left-color: var(--saffron);
+      background: rgba(232, 99, 26, 0.12);
+    }
+    .nav-icon { font-size: 1rem; width: 22px; text-align: center; }
+
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem 2.5rem 3rem;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding: 1.75rem 2rem;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(26, 107, 69, 0.12) 0%, rgba(232, 99, 26, 0.1) 100%);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .hero-copy h2 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(1.5rem, 2.8vw, 2rem);
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+    }
+    .hero-copy p {
+      color: var(--ink2);
+      font-size: 1.05rem;
+      line-height: 1.55;
+      max-width: 36ch;
+    }
+    .hero-figure {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(26, 35, 50, 0.18);
+      aspect-ratio: 4 / 3;
+    }
+    .hero-figure img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .hero-caption {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      color: #fff;
+      background: linear-gradient(transparent, rgba(15, 20, 25, 0.85));
+    }
+
+    .demo-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+      line-height: 1.45;
+    }
+    .demo-note a { color: var(--saffron-dark); font-weight: 600; }
+
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h2 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.6rem;
+      color: var(--ink);
+    }
+    .page-header p { font-size: 0.95rem; color: var(--muted); margin-top: 0.35rem; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 24px rgba(26, 35, 50, 0.04);
+    }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--ink2);
+      margin-bottom: 0.45rem;
+      font-weight: 600;
+    }
+    .form-select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: #fff;
+      color: var(--ink);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      cursor: pointer;
+    }
+    .form-select:focus { outline: none; border-color: var(--saffron); box-shadow: 0 0 0 3px rgba(232, 99, 26, 0.15); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 24px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s, box-shadow 0.15s;
+      border: none;
+      background: linear-gradient(135deg, var(--saffron-dark) 0%, var(--saffron) 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(232, 99, 26, 0.35);
+    }
+    .btn:hover { filter: brightness(1.05); box-shadow: 0 6px 20px rgba(232, 99, 26, 0.4); }
+    .btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .result-box {
+      background: var(--green-soft);
+      border: 1px solid rgba(26, 107, 69, 0.2);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .result-box.visible { display: block; }
+    .result-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.65rem;
+    }
+    .result-text {
+      font-size: 0.92rem;
+      color: var(--ink2);
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    .careers-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+    .career-chip {
+      background: #fff;
+      color: var(--green);
+      border: 1px solid rgba(26, 107, 69, 0.25);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: rgba(245, 238, 228, 0.6);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--ink2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(253, 250, 245, 0.8); }
+
+    .path-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 1rem;
+    }
+    .path-card {
+      background: rgba(245, 238, 228, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      font-size: 0.88rem;
+      color: var(--ink2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .path-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--saffron); flex-shrink: 0; }
+
+    .scholarship-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .schol-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 16px rgba(26, 35, 50, 0.04);
+    }
+    .schol-title { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin-bottom: 0.5rem; }
+    .schol-body { font-size: 0.85rem; color: var(--ink2); line-height: 1.65; }
+    .badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 0.5rem;
+    }
+    .badge-green { background: var(--green-soft); color: var(--green); }
+    .badge-blue { background: #e8f0fb; color: #1a4a9e; }
+    .badge-warn { background: #fef4e4; color: #8a5a0a; }
+    .badge-red { background: #fdecea; color: #a32d2d; }
+
+    .tip-box {
+      background: rgba(245, 238, 228, 0.7);
+      border-left: 3px solid var(--saffron);
+      border-radius: 0 12px 12px 0;
+      padding: 1rem 1.25rem;
+      font-size: 0.88rem;
+      color: var(--ink2);
+      margin-top: 1.5rem;
+      line-height: 1.65;
+    }
+
+    .assistant-launcher {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 10000;
+      border: none;
+      border-radius: 999px;
+      padding: 1.15rem 1.5rem;
+      background: linear-gradient(135deg, #1a7f4b 0%, #0f5f3a 42%, #e8631a 100%);
+      color: #fff;
+      box-shadow: 0 24px 60px rgba(232, 99, 26, 0.48);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.9rem;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 900;
+      font-size: 1rem;
+      letter-spacing: 0.01em;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+    .assistant-launcher:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 30px 70px rgba(232, 99, 26, 0.6);
+      filter: brightness(1.03);
+    }
+    .assistant-launcher .bot-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 3.6rem;
+      height: 3.6rem;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      font-size: 1.85rem;
+      flex-shrink: 0;
+    }
+
+    .assistant-panel {
+      position: fixed;
+      right: 24px;
+      bottom: 120px;
+      z-index: 9999;
+      width: min(460px, calc(100vw - 32px));
+      max-height: 80vh;
+      background: rgba(255, 255, 255, 0.97);
+      border: 1px solid rgba(26, 35, 50, 0.12);
+      border-radius: 28px;
+      box-shadow: 0 28px 82px rgba(26, 35, 50, 0.24);
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+      backdrop-filter: blur(16px);
+    }
+    .assistant-panel.open { display: flex; }
+    .assistant-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.8rem;
+      padding: 1rem 1rem 0.9rem;
+      background: linear-gradient(135deg, rgba(26, 107, 69, 0.11), rgba(232, 99, 26, 0.08));
+      border-bottom: 1px solid rgba(26, 35, 50, 0.08);
+    }
+    .assistant-title {
+      color: #1a2332;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.35rem;
+      margin-bottom: 0.2rem;
+    }
+    .assistant-subtitle {
+      color: #5b6472;
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+    .assistant-close {
+      border: none;
+      background: rgba(26, 35, 50, 0.08);
+      color: #1a2332;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .assistant-messages {
+      padding: 1.1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      background: linear-gradient(180deg, rgba(253, 250, 245, 0.9), rgba(232, 245, 236, 0.36));
+    }
+    .assistant-message {
+      max-width: 88%;
+      padding: 0.95rem 1.05rem;
+      border-radius: 18px;
+      font-size: 1rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      box-shadow: 0 6px 16px rgba(26, 35, 50, 0.06);
+    }
+    .assistant-message.bot {
+      background: #fff;
+      color: #1a2332;
+      border: 1px solid rgba(26, 35, 50, 0.08);
+      border-top-left-radius: 6px;
+    }
+    .assistant-message.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(26, 107, 69, 0.96), rgba(232, 99, 26, 0.92));
+      color: #fff;
+      border-top-right-radius: 6px;
+    }
+    .assistant-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      padding: 0 1.1rem 1.1rem;
+    }
+    .assistant-chip {
+      border: 1px solid rgba(26, 107, 69, 0.18);
+      background: #fff;
+      color: #1a6b45;
+      border-radius: 999px;
+      padding: 0.6rem 0.95rem;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .assistant-input-row {
+      display: flex;
+      gap: 0.7rem;
+      padding: 0 1.1rem 1.1rem;
+      align-items: center;
+    }
+    .assistant-input {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.95rem 1rem;
+      font: inherit;
+      font-size: 1rem;
+      color: #1a2332;
+      background: #fff;
+    }
+    .assistant-input:focus {
+      outline: none;
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232, 99, 26, 0.14);
+    }
+    .assistant-send {
+      border: none;
+      border-radius: 14px;
+      padding: 0.95rem 1.15rem;
+      font: inherit;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #fff;
+      background: linear-gradient(135deg, var(--saffron-dark), var(--saffron));
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(232, 99, 26, 0.28);
+    }
+
+    @media (max-width: 720px) {
+      .assistant-launcher {
+        right: 14px;
+        bottom: 14px;
+        padding: 1rem 1.15rem;
+      }
+      .assistant-panel {
+        right: 14px;
+        left: 14px;
+        width: auto;
+        bottom: 102px;
+      }
+      .assistant-launcher span.label {
+        display: none;
+      }
+      .assistant-launcher .bot-icon {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.5rem;
+      }
+      .assistant-title { font-size: 1.2rem; }
+      .assistant-message { font-size: 0.95rem; }
+    }
+
+    @media (max-width: 960px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-figure { max-height: 240px; }
+    }
+    @media (max-width: 720px) {
+      .shell { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 1rem;
+        align-items: center;
+      }
+      .sidebar-logo { border: none; padding: 0 1rem 0 0; }
+      .nav-items { display: flex; flex-wrap: wrap; padding: 0; flex: 1; }
+      .nav-item { border-left: none; border-bottom: 2px solid transparent; padding: 8px 12px; }
+      .nav-item.active { border-left: none; border-bottom-color: var(--saffron); }
+      .main { padding: 1.25rem; }
+      .scholarship-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <h1 class="sr-only">Margdarshak — career guidance, colleges, pathways, scholarships</h1>
+
+  <div class="shell">
+    <nav class="sidebar" aria-label="Main navigation">
+      <div class="sidebar-logo">
+        <h1>Margdarshak</h1>
+        <p>Digital Guidance</p>
+      </div>
+      <div class="nav-items">
+        <div class="nav-item active" data-section="quiz" role="button" tabindex="0">
+          <span class="nav-icon" aria-hidden="true">&#9733;</span>
+          <span>Aptitude Quiz</span>
+        </div>
+        <div class="nav-item" data-section="colleges" role="button" tabindex="0">
+          <span class="nav-icon" aria-hidden="true">&#9679;</span>
+          <span>College Directory</span>
+        </div>
+        <div class="nav-item" data-section="pathways" role="button" tabindex="0">
+          <span class="nav-icon" aria-hidden="true">&#9658;</span>
+          <span>Career Pathways</span>
+        </div>
+        <div class="nav-item" data-section="scholarships" role="button" tabindex="0">
+          <span class="nav-icon" aria-hidden="true">&#10003;</span>
+          <span>Scholarships</span>
+        </div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <div class="hero">
+        <div class="hero-copy">
+          <h2>Your path, thoughtfully guided</h2>
+          <p>
+            Explore streams, exams, and careers with a calm, student-first layout — the same flows as the Margdarshak Python app.
+          </p>
+          <p class="demo-note">
+            This page runs in the browser with a <strong>demo recommendation</strong> (no API keys). For full <strong>Gemini</strong> answers, run
+            <code>streamlit run margdarshak.py</code> with <code>GENAI_API_KEY</code> in <code>.env</code>.
+          </p>
+        </div>
+        <figure class="hero-figure">
+          <img
+            src="D:\mini_project\photo-1523240795612-9a054b0db644.avif"
+            alt="Students and mentor collaborating over books and laptops"
+            width="600"
+            height="450"
+            loading="lazy"
+          />
+          <figcaption class="hero-caption">Teaching &amp; guiding — every question opens a door</figcaption>
+        </figure>
+      </div>
+
+      <section class="section active" id="quiz" aria-labelledby="quiz-heading">
+        <div class="page-header">
+          <h2 id="quiz-heading">Find your path</h2>
+          <p>Three quick questions — then your tailored suggestion (demo mode).</p>
+        </div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label" for="q1">What do you enjoy most?</label>
+            <select class="form-select" id="q1">
+              <option>Solving Puzzles/Math</option>
+              <option>Reading/Writing/History</option>
+              <option>Managing Money/Business</option>
+              <option>Hands-on Practical Work</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="q2">What is your goal?</label>
+            <select class="form-select" id="q2">
+              <option>High Salary in Corporate</option>
+              <option>Serving the Public (Govt)</option>
+              <option>Innovation &amp; Research</option>
+              <option>Starting a Business</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="q3">Which subject stream do you prefer?</label>
+            <select class="form-select" id="q3">
+              <option>Math/Science</option>
+              <option>Commerce</option>
+              <option>Arts</option>
+              <option>Vocational</option>
+            </select>
+          </div>
+          <button type="button" class="btn" id="analyzeBtn">
+            <span id="btnText">Get recommendation (demo)</span>
+            <span id="btnSpinner" style="display: none"><span class="spinner" aria-hidden="true"></span></span>
+          </button>
+        </div>
+
+        <div class="result-box" id="resultBox" role="status">
+          <div class="result-label">Guidance summary</div>
+          <div class="result-text" id="resultText"></div>
+          <div id="careersRow" class="careers-chip-row" style="display: none"></div>
+        </div>
+      </section>
+
+      <section class="section" id="colleges" aria-labelledby="colleges-heading">
+        <div class="page-header">
+          <h2 id="colleges-heading">Nearby government colleges</h2>
+          <p>Browse sample colleges by district</p>
+        </div>
+        <div class="card">
+          <div class="form-group" style="margin-bottom: 1.5rem">
+            <label class="form-label" for="districtSelect">Select your district</label>
+            <select class="form-select" id="districtSelect">
+              <option>District A</option>
+              <option>District B</option>
+            </select>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Course</th><th>Location</th><th>Facilities</th></tr>
+              </thead>
+              <tbody id="collegeTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="pathways" aria-labelledby="pathways-heading">
+        <div class="page-header">
+          <h2 id="pathways-heading">Course-to-career mapping</h2>
+          <p>Explore careers for each stream</p>
+        </div>
+        <div class="card">
+          <div class="form-group" style="margin-bottom: 1.5rem">
+            <label class="form-label" for="streamSelect">Choose a degree stream</label>
+            <select class="form-select" id="streamSelect">
+              <option>Science</option>
+              <option>Commerce</option>
+              <option>Arts</option>
+              <option>Vocational</option>
+            </select>
+          </div>
+          <div class="path-grid" id="pathGrid"></div>
+        </div>
+      </section>
+
+      <section class="section" id="scholarships" aria-labelledby="scholarships-heading">
+        <div class="page-header">
+          <h2 id="scholarships-heading">2026 scholarship &amp; financial aid</h2>
+          <p>National schemes and deadlines</p>
+        </div>
+        <div class="scholarship-grid">
+          <div>
+            <p style="font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem">National schemes</p>
+            <div class="schol-card" style="margin-bottom: 1rem">
+              <span class="badge badge-green">CSSS</span>
+              <div class="schol-title">Central Sector Scheme</div>
+              <div class="schol-body">Eligibility: Top 20th percentile of Class 12.<br />Amount: &#8377;12,000/yr (UG) &middot; &#8377;20,000/yr (PG)</div>
+            </div>
+            <div class="schol-card">
+              <span class="badge badge-blue">PMSS</span>
+              <div class="schol-title">PM Scholarship Scheme</div>
+              <div class="schol-body">For wards of Ex-servicemen &amp; Police personnel.<br />Amount: &#8377;30,000 &ndash; &#8377;36,000 annually</div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem">Upcoming deadlines</p>
+            <div class="schol-card" style="margin-bottom: 1rem">
+              <span class="badge badge-warn">NSP Portal</span>
+              <div class="schol-title">National Scholarship Portal</div>
+              <div class="schol-body">Applications typically open July&ndash;August each year. Watch for the official notification.</div>
+            </div>
+            <div class="schol-card">
+              <span class="badge badge-red">Closing soon</span>
+              <div class="schol-title">SBI Asha Scholarship</div>
+              <div class="schol-body">Applications close March/April 2026. Late entries are usually not accepted.</div>
+            </div>
+          </div>
+        </div>
+        <div class="tip-box">
+          Keep your <strong>Income Certificate</strong> and <strong>Aadhaar-seeded bank account</strong> ready for DBT (Direct Benefit Transfer) before applying to any scheme.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="assistant-panel" id="assistantPanel" aria-label="Student AI assistant" aria-live="polite">
+    <div class="assistant-header">
+      <div>
+        <div class="assistant-title">🤖 Student AI Assistant</div>
+        <div class="assistant-subtitle">Ask about streams, exams, colleges, or scholarships.</div>
+      </div>
+      <button type="button" class="assistant-close" id="assistantCloseBtn" aria-label="Close assistant">&times;</button>
+    </div>
+    <div class="assistant-messages" id="assistantMessages">
+      <div class="assistant-message bot">I can help with careers, exam plans, college search, and scholarship guidance. Ask me a direct question.</div>
+    </div>
+    <div class="assistant-chips" id="assistantChips">
+      <button type="button" class="assistant-chip" data-query="Which stream should I choose after Class 10?">Stream advice</button>
+      <button type="button" class="assistant-chip" data-query="What exams should I prepare for in 2026?">Exam plan</button>
+      <button type="button" class="assistant-chip" data-query="How do I find colleges near me?">Colleges</button>
+      <button type="button" class="assistant-chip" data-query="What scholarships can I apply for?">Scholarships</button>
+    </div>
+    <div class="assistant-input-row">
+      <input class="assistant-input" id="assistantInput" type="text" placeholder="Type your student question..." aria-label="Type your student question" />
+      <button type="button" class="assistant-send" id="assistantSendBtn">Send</button>
+    </div>
+  </div>
+
+  <button type="button" class="assistant-launcher" id="assistantLauncher" aria-label="Open student AI assistant">
+    <span class="bot-icon" aria-hidden="true">🤖</span>
+    <span class="label">Ask AI Bot</span>
+  </button>
+
+  <script>
+    const COLLEGE_DATA = [
+      { Name: "Govt. City College", Course: "B.Sc Science", Location: "District A", Facilities: "Hostel, Lab, Library" },
+      { Name: "Govt. Arts College", Course: "B.A. Arts", Location: "District A", Facilities: "Library, Sports" },
+      { Name: "Model Degree College", Course: "B.Com Commerce", Location: "District B", Facilities: "Internet, Lab" },
+    ];
+    const CAREER_MAPS = {
+      Science: ["Data Scientist", "Doctor", "Engineer", "Research Scholar", "ISRO/DRDO Exams"],
+      Commerce: ["Chartered Accountant", "Investment Banker", "MBA", "UPSC", "Entrepreneurship"],
+      Arts: ["Civil Services (IAS)", "Journalism", "Lawyer", "Social Work", "Teaching"],
+      Vocational: ["Skill Tech", "Graphic Design", "Digital Marketing", "Nursing"],
+    };
+
+    const STREAM_FROM_Q3 = {
+      "Math/Science": "Science",
+      Commerce: "Commerce",
+      Arts: "Arts",
+      Vocational: "Vocational",
+    };
+
+    function navigateTo(sectionId) {
+      document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+      document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
+      const nav = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+      if (nav) nav.classList.add("active");
+      const sec = document.getElementById(sectionId);
+      if (sec) sec.classList.add("active");
+      if (sectionId === "colleges") filterColleges();
+      if (sectionId === "pathways") renderPathways();
+    }
+
+    document.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => navigateTo(item.dataset.section));
+      item.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigateTo(item.dataset.section);
+        }
+      });
+    });
+
+    document.getElementById("districtSelect").addEventListener("change", filterColleges);
+    document.getElementById("streamSelect").addEventListener("change", renderPathways);
+
+    function filterColleges() {
+      const d = document.getElementById("districtSelect").value;
+      const tbody = document.getElementById("collegeTbody");
+      tbody.innerHTML = "";
+      COLLEGE_DATA.filter((c) => c.Location === d).forEach((c) => {
+        tbody.innerHTML += `<tr><td>${c.Name}</td><td>${c.Course}</td><td>${c.Location}</td><td>${c.Facilities}</td></tr>`;
+      });
+    }
+
+    function renderPathways() {
+      const stream = document.getElementById("streamSelect").value;
+      const grid = document.getElementById("pathGrid");
+      grid.innerHTML = "";
+      CAREER_MAPS[stream].forEach((job) => {
+        grid.innerHTML += `<div class="path-card"><div class="path-dot"></div>${job}</div>`;
+      });
+    }
+
+    function buildDemoGuidance(q1, q2, q3) {
+      const stream = STREAM_FROM_Q3[q3] || "Science";
+      const careers = CAREER_MAPS[stream];
+      const exams =
+        stream === "Science"
+          ? "JEE Main (Jan & April sessions), NEET-UG (May), CUET-UG, NDA, state engineering/medical entrances."
+          : stream === "Commerce"
+            ? "CUET-UG, IPMAT, CLAT (if law interests you), CA Foundation, and B.Com entrance tests where applicable."
+            : stream === "Arts"
+              ? "CUET-UG, state university entrances, CLAT, and civil services foundation paths."
+              : "NSQF skill certifications, ITI/polytechnic routes, and sector-specific diplomas.";
+
+      return (
+        `1. RECOMMENDED STREAM: ${stream}\n` +
+        `   Your interests (${q1}) and goal (${q2}) align well with this stream for structured progression after Class 12.\n\n` +
+        `2. 2026 EXAM PATHWAY: ${exams}\n` +
+        `   Verify exact dates on official notices; add calendar reminders for registration windows.\n\n` +
+        `3. TOP 5 CAREERS (explore each in depth):\n` +
+        careers.map((c, i) => `   ${i + 1}. ${c} — a strong option to research alongside mentors and alumni.`).join("\n") +
+        `\n\n(Demo text — use Streamlit + Gemini for a fully personalised AI response.)`
+      );
+    }
+
+    function buildAssistantReply(query) {
+      const text = query.trim();
+      const lower = text.toLowerCase();
+      const stream =
+        lower.includes("science") || lower.includes("math") || lower.includes("jee") || lower.includes("neet")
+          ? "Science"
+          : lower.includes("commerce") || lower.includes("ca") || lower.includes("business") || lower.includes("finance")
+            ? "Commerce"
+            : lower.includes("arts") || lower.includes("law") || lower.includes("upsc") || lower.includes("journalism")
+              ? "Arts"
+              : lower.includes("skill") || lower.includes("vocational") || lower.includes("diploma") || lower.includes("iti")
+                ? "Vocational"
+                : null;
+
+      if (lower.includes("college") || lower.includes("admission") || lower.includes("near me")) {
+        return (
+          "For colleges, compare course fit, district, fees, facilities, and placement support.\n\n" +
+          "Use the College Directory tab to shortlist nearby options, then check official websites for admission dates."
+        );
+      }
+
+      if (lower.includes("scholarship") || lower.includes("financial aid") || lower.includes("fee")) {
+        return (
+          "Keep your income certificate, Aadhaar-linked bank account, marksheets, and admission proof ready.\n\n" +
+          "Start with national schemes like CSSS, PMSS, and NSP notifications, then expand to state and private schemes."
+        );
+      }
+
+      if (lower.includes("exam") || lower.includes("entrance") || lower.includes("prepare")) {
+        return (
+          "For 2026, keep an eye on JEE Main, NEET-UG, CUET-UG, CLAT, NDA, and relevant state entrances.\n\n" +
+          "A simple rule: choose the exam family that matches your stream, then build a monthly revision plan around it."
+        );
+      }
+
+      if (stream) {
+        return (
+          `Your question seems aligned to ${stream}. ${
+            stream === "Science"
+              ? "That path fits engineering, medicine, research, and data careers."
+              : stream === "Commerce"
+                ? "That path fits CA, MBA, banking, finance, and entrepreneurship."
+                : stream === "Arts"
+                  ? "That path fits law, civil services, journalism, teaching, and social work."
+                  : "That path fits skilled technician, design, digital marketing, and allied health careers."
+          }\n\n` +
+          "If you want, I can turn this into a 3-step plan: stream, exams, and careers."
+        );
+      }
+
+      return (
+        "I can help with stream choice, exams, colleges, scholarships, and career planning.\n\n" +
+        "Ask a direct question like: 'Which stream should I choose after Class 10?'"
+      );
+    }
+
+    function openAssistant() {
+      document.getElementById("assistantPanel").classList.add("open");
+    }
+
+    function closeAssistant() {
+      document.getElementById("assistantPanel").classList.remove("open");
+    }
+
+    function appendAssistantMessage(text, role) {
+      const container = document.getElementById("assistantMessages");
+      const message = document.createElement("div");
+      message.className = `assistant-message ${role}`;
+      message.textContent = text;
+      container.appendChild(message);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleAssistantSend(queryOverride) {
+      const input = document.getElementById("assistantInput");
+      const query = (queryOverride || input.value || "").trim();
+      if (!query) return;
+      openAssistant();
+      appendAssistantMessage(query, "user");
+      input.value = "";
+      window.setTimeout(() => {
+        appendAssistantMessage(buildAssistantReply(query), "bot");
+      }, 180);
+    }
+
+    document.getElementById("assistantLauncher").addEventListener("click", () => {
+      const panel = document.getElementById("assistantPanel");
+      panel.classList.toggle("open");
+    });
+    document.getElementById("assistantCloseBtn").addEventListener("click", closeAssistant);
+    document.getElementById("assistantSendBtn").addEventListener("click", () => handleAssistantSend());
+    document.getElementById("assistantInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleAssistantSend();
+      }
+    });
+    document.querySelectorAll(".assistant-chip").forEach((chip) => {
+      chip.addEventListener("click", () => handleAssistantSend(chip.dataset.query));
+    });
+
+    document.getElementById("analyzeBtn").addEventListener("click", async () => {
+      const q1 = document.getElementById("q1").value;
+      const q2 = document.getElementById("q2").value;
+      const q3 = document.getElementById("q3").value;
+      const btn = document.getElementById("analyzeBtn");
+      btn.disabled = true;
+      document.getElementById("btnText").textContent = "Preparing guidance…";
+      document.getElementById("btnSpinner").style.display = "inline-block";
+      document.getElementById("resultBox").classList.remove("visible");
+
+      await new Promise((r) => setTimeout(r, 650));
+
+      const text = buildDemoGuidance(q1, q2, q3);
+      document.getElementById("resultText").textContent = text;
+      document.getElementById("resultBox").classList.add("visible");
+
+      const stream = STREAM_FROM_Q3[q3];
+      const row = document.getElementById("careersRow");
+      row.innerHTML = "";
+      if (stream && CAREER_MAPS[stream]) {
+        row.style.display = "flex";
+        CAREER_MAPS[stream].forEach((job) => {
+          row.innerHTML += `<span class="career-chip">${job}</span>`;
+        });
+      }
+
+      btn.disabled = false;
+      document.getElementById("btnText").textContent = "Get recommendation (demo)";
+      document.getElementById("btnSpinner").style.display = "none";
+    });
+
+    filterColleges();
+    renderPathways();
+  </script>
+</body>
+</html>
