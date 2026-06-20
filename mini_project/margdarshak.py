@@ -8,7 +8,7 @@ import sqlite3
 import urllib.error
 import urllib.request
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple, cast
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
@@ -31,6 +31,8 @@ load_dotenv()
 YOUR_GROQ_KEY = os.getenv("GROQ_API_KEY", "").strip()
 AI_ENABLED = bool(YOUR_GROQ_KEY)
 client = None
+FAST_ASSISTANT_MODEL = os.getenv("GROQ_FAST_MODEL", "llama-3.1-8b-instant")
+DETAILED_ASSISTANT_MODEL = os.getenv("GROQ_DETAILED_MODEL", "llama-3.3-70b-versatile")
 if AI_ENABLED:
     try:
         client = Groq(api_key=YOUR_GROQ_KEY)
@@ -333,6 +335,30 @@ def init_db() -> None:
             )
             """
         )
+        existing_user_columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()
+        }
+        for column_name, column_type in (
+            ("age", "INTEGER"),
+            ("gender", "TEXT"),
+            ("current_class", "TEXT"),
+            ("academic_interests", "TEXT"),
+            ("preferred_stream", "TEXT"),
+        ):
+            if column_name not in existing_user_columns:
+                conn.execute(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                quiz_date TEXT NOT NULL,
+                recommendation_text TEXT NOT NULL,
+                recommended_stream TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+            """
+        )
         conn.commit()
 
 
@@ -365,7 +391,7 @@ def verify_login(username: str, password: str) -> tuple[bool, str | None, dict |
     username = username.strip().lower()
     with _db() as conn:
         row = conn.execute(
-            "SELECT username, password_hash, salt, full_name, email FROM users WHERE username = ?",
+            "SELECT id, username, password_hash, salt, full_name, email FROM users WHERE username = ?",
             (username,),
         ).fetchone()
     if row is None:
@@ -374,12 +400,59 @@ def verify_login(username: str, password: str) -> tuple[bool, str | None, dict |
     expected = row["password_hash"]
     if secrets.compare_digest(_hash_password(password, salt), expected):
         return True, None, {
+            "id": row["id"],
             "username": row["username"],
             "full_name": row["full_name"],
             "email": row["email"],
         }
     return False, "Invalid username or password.", None
 
+
+def update_user_profile(user_id: int, data: dict) -> bool:
+    try:
+        with _db() as conn:
+            conn.execute("""
+                UPDATE users SET age=?, gender=?, current_class=?, academic_interests=?, preferred_stream=?
+                WHERE id=?
+            """, (data.get('age'), data.get('gender'), data.get('current_class'),
+                  data.get('academic_interests'), data.get('preferred_stream'), user_id))
+            conn.commit()
+        return True
+    except Exception:
+        return False
+
+def save_recommendation(user_id: int, text: str, stream: Optional[str] = None) -> bool:
+    try:
+        with _db() as conn:
+            conn.execute("""
+                INSERT INTO user_recommendations (user_id, quiz_date, recommendation_text, recommended_stream)
+                VALUES (?, ?, ?, ?)
+            """, (user_id, datetime.utcnow().isoformat(), text, stream))
+            conn.commit()
+        return True
+    except Exception:
+        return False
+
+def get_user_recommendations(user_id: int):
+    with _db() as conn:
+        rows = conn.execute("""
+            SELECT id, quiz_date, recommendation_text, recommended_stream 
+            FROM user_recommendations WHERE user_id = ? ORDER BY id DESC
+        """, (user_id,)).fetchall()
+    return [dict(row) for row in rows]
+
+
+def delete_recommendation(user_id: int, recommendation_id: int) -> bool:
+    try:
+        with _db() as conn:
+            conn.execute(
+                "DELETE FROM user_recommendations WHERE id = ? AND user_id = ?",
+                (recommendation_id, user_id),
+            )
+            conn.commit()
+        return True
+    except Exception:
+        return False
 
 def auth_sidebar() -> None:
     if "auth_user" not in st.session_state:
@@ -423,9 +496,14 @@ def auth_sidebar() -> None:
 
 # --- AI LOGIC ---
 @st.cache_data(show_spinner=False) # This saves the result so you don't call the API twice for the same input
-def get_ai_recommendation(q1, q2, q3, q4, q5, q6) -> str:
+def get_ai_recommendation(q1, q2, q3, q4, q5, q6, mode: str = "Fast") -> str:
     if not AI_ENABLED or client is None:
         return "AI is not configured. Please add a valid GROQ_API_KEY to your .env file."
+
+    fast_mode = mode == "Fast"
+    model_name = FAST_ASSISTANT_MODEL if fast_mode else DETAILED_ASSISTANT_MODEL
+    temperature = 0.35 if fast_mode else 0.7
+    max_tokens = 320 if fast_mode else 600
 
     prompt = f"""
     You are an expert Indian Career Counselor. A student provided these details:
@@ -443,10 +521,10 @@ def get_ai_recommendation(q1, q2, q3, q4, q5, q6) -> str:
     3. TOP 5 CAREERS: 5 specific careers with a 1-sentence explanation for each.
     
     Keep the tone encouraging and professional.
+    Keep the answer concise and avoid extra filler.
     """
 
     try:
-        # Groq uses the chat.completions format
         chat_completion = client.chat.completions.create(
             messages=[
                 {
@@ -454,8 +532,9 @@ def get_ai_recommendation(q1, q2, q3, q4, q5, q6) -> str:
                     "content": prompt,
                 }
             ],
-            model="llama-3.3-70b-versatile", # High-quality model
-            temperature=0.7,
+            model=model_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
         content = chat_completion.choices[0].message.content
         return content if content is not None else "AI returned an empty response. Please try again."
@@ -467,6 +546,198 @@ def get_ai_recommendation(q1, q2, q3, q4, q5, q6) -> str:
         return f"Unexpected response format from AI: {e}"
     except Exception as e:
         return f"Groq AI request failed: {e}"
+
+
+def get_student_query_answer(query: str, history: Optional[list[dict]] = None, mode: str = "Fast") -> str:
+    if not AI_ENABLED or client is None:
+        return "AI is not configured. Please add a valid GROQ_API_KEY to your .env file."
+
+    fast_mode = mode == "Fast"
+    model_name = FAST_ASSISTANT_MODEL if fast_mode else DETAILED_ASSISTANT_MODEL
+    history_limit = 3 if fast_mode else 8
+    temperature = 0.35 if fast_mode else 0.6
+    max_tokens = 220 if fast_mode else 450
+    system_prompt = (
+        "You are Margdarshak, a fast, helpful AI assistant for Indian students. "
+        "Answer in short, practical steps. Keep replies under 8 lines unless the user asks for more detail. "
+        "If the question is vague, ask one short clarifying question."
+        if fast_mode
+        else "You are Margdarshak, a helpful AI assistant for Indian students. "
+        "Answer questions about careers, studies, exams, colleges, scholarships, "
+        "and general student guidance. Be clear, concise, and practical. "
+        "If the question is vague, ask one short clarifying question."
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt,
+        }
+    ]
+
+    if history:
+        messages.extend(history[-history_limit:])
+
+    messages.append({"role": "user", "content": query})
+
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=cast(Any, messages),
+            model=model_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        content = chat_completion.choices[0].message.content
+        return content if content is not None else "AI returned an empty response. Please try again."
+    except TypeError as e:
+        return f"Response parsing error from AI: {e}"
+    except APIConnectionError as e:
+        return f"Network error — check your internet connection: {e}"
+    except AttributeError as e:
+        return f"Unexpected response format from AI: {e}"
+    except Exception as e:
+        return f"Groq AI request failed: {e}"
+
+
+def render_student_ai_assistant() -> None:
+    if "student_bot_messages" not in st.session_state:
+        st.session_state.student_bot_messages = [
+            {
+                "role": "assistant",
+                "content": (
+                    "I can help with student queries about careers, admissions, exams, "
+                    "scholarships, and study planning. Ask me anything."
+                ),
+            }
+        ]
+    if "assistant_mode" not in st.session_state:
+        st.session_state.assistant_mode = "Fast"
+
+    def _submit_student_query() -> None:
+        student_query = st.session_state.get("assistant_student_query", "").strip()
+        if not student_query:
+            return
+
+        st.session_state.student_bot_messages.append({"role": "user", "content": student_query})
+        answer = get_student_query_answer(
+            student_query,
+            st.session_state.student_bot_messages[:-1],
+            st.session_state.assistant_mode,
+        )
+        st.session_state.student_bot_messages.append({"role": "assistant", "content": answer})
+        st.session_state["assistant_student_query"] = ""
+
+    st.markdown(
+        """
+        <style>
+        /* ULTRA LARGE AI Bot Button for easy visibility */
+        button[title="Open the student AI assistant"],
+        button[aria-label="Open the student AI assistant"],
+        .stPopover > button {
+            font-size: 3.5rem !important;   /* Increased text size */
+            font-weight: 900 !important;
+            width: auto !important;
+            min-width: 260px !important;    /* Widened from 220px */
+            height: 95px !important;        /* Tallened from 78px */
+            padding: 0 3rem !important;
+            border-radius: 999px !important;
+            box-shadow: 0 20px 45px rgba(232, 99, 26, 0.6) !important; /* Deeper shadow */
+            border: 5px solid #ffffff !important;                       /* Thicker border */
+            background: linear-gradient(135deg, #1a7f4b, #e8631a) !important;
+            position: fixed !important;
+            bottom: 40px !important;
+            right: 40px !important;
+            z-index: 9999 !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        button[title="Open the student AI assistant"]:hover,
+        button[aria-label="Open the student AI assistant"]:hover,
+        .stPopover > button:hover {
+            transform: scale(1.15) !important; /* Stronger hover zoom */
+            box-shadow: 0 25px 55px rgba(232, 99, 26, 0.75) !important;
+        }
+
+        button[title="Open the student AI assistant"] span,
+        button[aria-label="Open the student AI assistant"] span,
+        .stPopover > button span {
+            font-size: 4.5rem !important;   /* Massive emoji size */
+            line-height: 1 !important;
+        }
+
+        /* Larger Popover Window */
+        .stPopover [data-testid="stPopoverBody"] {
+            min-width: 620px !important;
+            max-width: 720px !important;
+            border-radius: 24px !important;
+            padding: 1.5rem !important;
+        }
+        .stPopover h3 {
+            font-size: 1.9rem !important;
+        }
+        .stChatMessage {
+            font-size: 1.12rem !important;
+            line-height: 1.65 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.popover("🤖", help="Open the student AI assistant"):
+        st.markdown("### Student AI Assistant")
+        st.caption("Ask about careers, exams, colleges, scholarships, study plans, or next steps.")
+        st.selectbox(
+            "Response mode",
+            ["Fast", "Detailed"],
+            key="assistant_mode",
+            help="Fast uses a smaller model and shorter context for quicker replies.",
+        )
+
+        clear_col, spacer_col = st.columns([1, 3])
+        with clear_col:
+            if st.button("Clear chat", key="assistant_clear_chat"):
+                st.session_state.student_bot_messages = [
+                    {
+                        "role": "assistant",
+                        "content": (
+                            "I can help with student queries about careers, admissions, exams, "
+                            "scholarships, and study planning. Ask me anything."
+                        ),
+                    }
+                ]
+                st.rerun()
+
+        for message in st.session_state.student_bot_messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+        student_query = st.text_input(
+            "Type your student question",
+            key="assistant_student_query",
+            placeholder="For example: Which stream should I choose after Class 10?",
+            label_visibility="collapsed",
+        )
+
+        st.button("Send", key="assistant_send_query", on_click=_submit_student_query)
+
+        st.markdown("#### Quick prompts")
+        quick_questions = [
+            "Which stream should I choose after Class 10?",
+            "What exams should I prepare for in 2026?",
+            "How do I find colleges near me?",
+            "What scholarships can I apply for?",
+        ]
+        for question in quick_questions:
+            if st.button(question, key=f"assistant_quick_{question}"):
+                st.session_state.student_bot_messages.append({"role": "user", "content": question})
+                answer = get_student_query_answer(
+                    question,
+                    st.session_state.student_bot_messages[:-1],
+                    st.session_state.assistant_mode,
+                )
+                st.session_state.student_bot_messages.append({"role": "assistant", "content": answer})
+                st.rerun()
     
 
 def _inject_theme_css() -> None:
@@ -542,6 +813,10 @@ def main():
 
     auth_sidebar()
 
+    top_bar_left, top_bar_right = st.columns([9, 1])
+    with top_bar_right:
+        render_student_ai_assistant()
+
     if not AI_ENABLED:
         st.warning("⚠️ AI configuration not found. Set GENAI_API_KEY in your .env and restart.")
 
@@ -607,7 +882,7 @@ def main():
 
         if go:
             with st.spinner("Analyzing your profile..."):
-                res = get_ai_recommendation(q1, q2, q3, q4, q5, q6)
+                res = get_ai_recommendation(q1, q2, q3, q4, q5, q6, st.session_state.assistant_mode)
             st.success("Personalized AI suggestion")
             st.write(res)
 
@@ -615,6 +890,12 @@ def main():
             if stream_found:
                 roles = [x["role"] for x in CAREER_PATHWAYS[stream_found]]
                 st.info(f"Top careers in **{stream_found}**: {', '.join(roles)}")
+
+            if st.session_state.get("auth_user"):
+                save_recommendation(st.session_state.auth_user["id"], res, stream_found)
+                st.caption("Saved to your profile recommendations.")
+            else:
+                st.caption("Log in to save this recommendation to your profile.")
 
     elif sidebar == "College Directory":
         st.header("Nearby colleges & mainstream courses")
@@ -795,34 +1076,90 @@ def main():
         with col1:
             st.subheader("National Schemes")
             st.success(
-                "**Central Sector Scheme (CSSS)**\n- Eligibility: Top 20th percentile of Class 12.\n- Amount: ₹12,000/yr (UG), ₹20,000/yr (PG)."
+                "**[Central Sector Scheme (CSSS)](https://scholarships.gov.in/)**\n"
+                "- Eligibility: Top 20th percentile of Class 12.\n"
+                "- Amount: ₹12,000/yr (UG), ₹20,000/yr (PG)."
             )
             st.info(
-                "**PM Scholarship Scheme (PMSS)**\n- For wards of Ex-servicemen/Police.\n- Amount: ₹30,000 - ₹36,000 annually."
+                "**[PM Scholarship Scheme (PMSS)](https://scholarships.gov.in/)**\n"
+                "- For wards of Ex-servicemen/Police.\n"
+                "- Amount: ₹30,000 - ₹36,000 annually."
             )
 
         with col2:
             st.subheader("Upcoming Deadlines")
-            st.warning("⚠️ **NSP Portal (National Scholarship):** Typically opens July-August.")
-            st.error("🚨 **SBI Asha Scholarship:** Applications close March/April 2026.")
+            st.warning("⚠️ **[NSP Portal (National Scholarship)](https://scholarships.gov.in/):** Automatically opens July-August.")
+            st.error("🚨 **[SBI Asha Scholarship](https://www.buddy4study.com/):** Applications close March/April 2026.")
 
         st.markdown("---")
+        
+        st.subheader("Official Portals")
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            st.link_button("Go to National Scholarship Portal (NSP)", "https://scholarships.gov.in/", use_container_width=True)
+        with btn_col2:
+            st.link_button("Check Buddy4Study for Private Scholarships", "https://www.buddy4study.com/", use_container_width=True)
+
         st.write(
             "💡 *Tip: Keep your Income Certificate and Aadhaar-seeded bank account ready for DBT (Direct Benefit Transfer).*"
         )
 
     elif sidebar == "My Profile":
-        st.header("My profile")
-        if st.session_state.auth_user is None:
-            st.info("Use **Log in** or **Register** in the sidebar under **Account**.")
+        if not st.session_state.get("auth_user"):
+            st.info("Please log in.")
         else:
             u = st.session_state.auth_user
-            st.subheader("Your account")
-            st.write(f"**Username:** {u['username']}")
-            st.write(f"**Full name:** {u['full_name']}")
-            st.write(f"**Email:** {u['email']}")
-            st.caption("To change details, contact support or re-register a new account (delete old row in DB for production apps).")
+            st.subheader(f"Welcome, {u['full_name']}")
 
+            st.divider()
+            st.subheader("Update Profile")
+            col1, col2 = st.columns(2)
+            with col1:
+                age = st.number_input("Age", 14, 25, value=u.get("age") or 17)
+                gender = st.selectbox("Gender", ["Male", "Female", "Other", "Prefer not to say"])
+                current_class = st.selectbox("Current Class", ["Class 10", "Class 11", "Class 12", "Dropper/Gap Year"])
+            with col2:
+                preferred_stream = st.selectbox("Preferred Stream", ["Science", "Commerce", "Arts", "Vocational", "Not Sure Yet"])
+                interests = st.text_area("Academic Interests", value=u.get("academic_interests", ""))
+            if st.button("Update Profile"):
+                profile_data = {
+                    "age": age, "gender": gender, "current_class": current_class,
+                    "academic_interests": interests, "preferred_stream": preferred_stream
+                }
+                if update_user_profile(u["id"], profile_data):
+                    profile_summary = (
+                        f"Profile updated recommendation:\n"
+                        f"- Age: {age}\n"
+                        f"- Gender: {gender}\n"
+                        f"- Class: {current_class}\n"
+                        f"- Preferred stream: {preferred_stream}\n"
+                        f"- Academic interests: {interests or 'Not provided'}"
+                    )
+                    save_recommendation(u["id"], profile_summary, preferred_stream)
+                    st.session_state.auth_user.update(profile_data)
+                    st.success("Profile updated!")
+                    st.rerun()
+
+            st.divider()
+            st.subheader("Saved Recommendations")
+            recs = get_user_recommendations(u["id"])
+            if recs:
+                for rec in recs:
+                    label = f"📅 {rec['quiz_date'][:10]}"
+                    if rec.get("recommended_stream"):
+                        label += f" · {rec['recommended_stream']}"
+                    with st.expander(label):
+                        st.markdown(rec["recommendation_text"])
+                        if st.button("Remove", key=f"delete_rec_{rec['id']}"):
+                            if delete_recommendation(u["id"], rec["id"]):
+                                st.success("Saved recommendation removed.")
+                                st.rerun()
+                            else:
+                                st.error("Could not remove the saved recommendation.")
+            else:
+                st.info("No saved recommendations yet.")
+
+   
 
 if __name__ == "__main__":
     main()
